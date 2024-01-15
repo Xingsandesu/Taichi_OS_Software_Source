@@ -1,8 +1,17 @@
 import json
 import os
+import platform
 import re
 
 from flask import Flask, request, jsonify, render_template, send_from_directory
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
+from tornado.wsgi import WSGIContainer
+
+if platform.system() == "Windows":
+    import asyncio
+
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 app = Flask(__name__)
 
@@ -76,4 +85,8 @@ def app_json():
 
 
 if __name__ == '__main__':
-    app.run()
+    s = HTTPServer(WSGIContainer(app))
+    port = 10010
+    s.listen(port=port, address='0.0.0.0')
+    print(f"Taichi_OS_Software_Source启动在0.0.0.0:{port}")
+    IOLoop.current().start()

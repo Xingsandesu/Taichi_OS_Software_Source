@@ -2,6 +2,7 @@
 <html lang="zh">
 <head>
     <title>Taichi_OS_Software_Source_Private</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='ace_editor.css') }}">
     <script src="{{ url_for('static', filename='jquery.min.js') }}"></script>
@@ -13,6 +14,8 @@
 </head>
 <body>
 <div class="container">
+    <img src="{{ url_for('static', filename='favicon.png') }}" alt="Logo"
+         style="display: block; margin-left: auto; margin-right: auto; width: 250px; height: auto;">
     <h1 class="mt-4">Taichi_OS软件源JSON生成工具-私有版本</h1>
     <div id="software-table" class="mt-4"></div>
     <div class="alert alert-info mt-4">
@@ -33,12 +36,17 @@
             <li>确认无误后, 点击确认, 自动写入相对于的app.json和run.json</li>
         </ol>
         <hr>
-        <h5>文件路径</h5>
+        <h5>软件源目录结构</h5>
         <ul>
-            <li>app.json # 软件源目录<br>
+            <li>app.json # 软件源目录MAP<br>
                 路径: /app.json</li>
             <li>run.json # 软件运行需要的配置文件<br>
                 路径: /app/{name}/run.json</li>
+        </ul>
+        <h5>联系方式</h5>
+        <ul>
+            <li>Github: https://github.com/Xingsandesu/Taichi_OS_Software_Source</li>
+            <li>QQ群: 909881726</li>
         </ul>
     </div>
     <input type="text" id="command" class="form-control mt-4" placeholder="输入docker run命令">
