@@ -31,14 +31,15 @@ def docker_run():
                 name = arg.split('=')[1]
                 break
             elif arg == '--name':
-                name = args[i+1]
+                name = args[i + 1]
                 break
 
         if name is None:
             return jsonify('错误: 命令中没有找到 --name 参数'), 200
 
-        ports = [args[i+1] for i, x in enumerate(args) if x == '-p']
-        volumes = [args[i+1] for i, x in enumerate(args) if x == '-v']
+        ports = [args[i + 1] for i, x in enumerate(args) if x == '-p']
+        volumes = [args[i + 1] for i, x in enumerate(args) if x == '-v']
+        envs = [args[i + 1] for i, x in enumerate(args) if x == '-e']
     except (ValueError, IndexError) as e:
         return jsonify(f'解析错误,请检查命令{e}'), 200
 
@@ -53,7 +54,9 @@ def docker_run():
         return jsonify('错误: 命令中没有找到镜像名'), 200
 
     ports_dict = {p.split(':')[1]: int(p.split(':')[0]) for p in ports if ':' in p}
-    volumes_dict = {f"{name}_{v.split(':')[1].split('/')[-1]}_volume": {"bind": v.split(':')[1], "mode": "rw"} for v in volumes}
+    volumes_dict = {f"{name}_{v.split(':')[1].split('/')[-1]}_volume": {"bind": v.split(':')[1], "mode": "rw"} for v in
+                    volumes}
+    envs_dict = {e.split('=')[0]: e.split('=')[1] for e in envs if '=' in e}
 
     container_config = {
         'image': image,
@@ -64,6 +67,8 @@ def docker_run():
 
     if volumes_dict:
         container_config['volumes'] = volumes_dict
+    if envs_dict:
+        container_config['env'] = envs_dict
 
     return jsonify(container_config), 200
 
@@ -104,7 +109,7 @@ def index():
 
 
 @app.route('/app/<path:app_name>/run.json', methods=['GET'])
-def static_proxy(app_name):
+def run_json(app_name):
     return send_from_directory(f'app/{app_name}', 'run.json')
 
 
