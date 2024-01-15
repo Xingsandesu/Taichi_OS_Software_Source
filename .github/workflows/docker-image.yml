@@ -31,5 +31,5 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/Taichi_OS_Software_Source:${{ github.ref_name }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/Taichi_OS_Software_Source:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/taichi_os_software_source:${{ github.ref_name }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/taichi_os_software_source:latest
