@@ -2,6 +2,7 @@ import json
 import os
 import platform
 import re
+import shlex
 
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from tornado.httpserver import HTTPServer
@@ -19,16 +20,40 @@ app = Flask(__name__)
 @app.route('/source', methods=['POST'])
 def docker_run():
     command = request.json.get('command')
-    try:
-        image = re.search(r' ([\w./-]+)$', command).group(1)
-        name = re.search(r'--name\s+(.*?)\s', command).group(1)
-        ports = re.findall(r'-p\s+(.*?):(.*?)(/udp)?\s', command)
-        volumes = re.findall(r'-v\s+(.*?):(.*?)(?=\s|$)', command)
-    except AttributeError:
-        return jsonify('解析错误,请检查命令'), 200
+    # 移除命令中的引号
+    command = command.replace('"', '')
+    args = shlex.split(command, posix=False)
 
-    ports_dict = {f"{p[1]}{p[2] if p[2] else '/tcp'}": int(p[0]) for p in ports}
-    volumes_dict = {f"{name}_{v[1].split('/')[-1]}_volume": {"bind": v[1], "mode": "rw"} for v in volumes}
+    try:
+        name = None
+        for i, arg in enumerate(args):
+            if arg.startswith('--name='):
+                name = arg.split('=')[1]
+                break
+            elif arg == '--name':
+                name = args[i+1]
+                break
+
+        if name is None:
+            return jsonify('错误: 命令中没有找到 --name 参数'), 200
+
+        ports = [args[i+1] for i, x in enumerate(args) if x == '-p']
+        volumes = [args[i+1] for i, x in enumerate(args) if x == '-v']
+    except (ValueError, IndexError) as e:
+        return jsonify(f'解析错误,请检查命令{e}'), 200
+
+    # 获取镜像名
+    image = None
+    for arg in reversed(args):
+        if '/' in arg:
+            image = arg
+            break
+
+    if image is None:
+        return jsonify('错误: 命令中没有找到镜像名'), 200
+
+    ports_dict = {p.split(':')[1]: int(p.split(':')[0]) for p in ports if ':' in p}
+    volumes_dict = {f"{name}_{v.split(':')[1].split('/')[-1]}_volume": {"bind": v.split(':')[1], "mode": "rw"} for v in volumes}
 
     container_config = {
         'image': image,
