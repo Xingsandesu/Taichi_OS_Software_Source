@@ -46,6 +46,7 @@ def docker_run():
 @app.route('/confirm', methods=['POST'])
 def confirm():
     container_config = request.json.get('container_config')
+    description = request.json.get('description')  # 获取软件简介
     try:
         name = container_config['name']
     except TypeError:
@@ -57,7 +58,10 @@ def confirm():
     else:
         app_data = {}
 
-    app_data[name] = request.url_root + f"app/{name}/run.json"
+    app_data[name] = {
+        "url": request.url_root + f"app/{name}/run.json",
+        "description": description  # 保存软件简介
+    }
 
     with open('app.json', 'w') as f:
         json.dump(app_data, f, indent=4)
@@ -83,6 +87,35 @@ def static_proxy(app_name):
 def app_json():
     return send_from_directory('.', 'app.json')
 
+
+@app.route('/delete/<app_name>', methods=['DELETE'])
+def delete_app(app_name):
+    try:
+        # 删除 run.json 文件
+        run_json_path = f'app/{app_name}/run.json'
+        if os.path.exists(run_json_path):
+            os.remove(run_json_path)
+
+        # 删除应用目录
+        app_dir_path = f'app/{app_name}'
+        if os.path.exists(app_dir_path):
+            os.rmdir(app_dir_path)
+
+        # 从 app.json 中删除应用条目
+        with open('app.json', 'r') as f:
+            app_data = json.load(f)
+        if app_name in app_data:
+            del app_data[app_name]
+
+        # 将更新后的内容写回 app.json
+        with open('app.json', 'w') as f:
+            json.dump(app_data, f, indent=4)
+
+        return jsonify({"message": "Success"}), 200
+    except OSError as e:
+        return jsonify({"message": f"文件操作错误: {str(e)}"}), 500
+    except json.JSONDecodeError as e:
+        return jsonify({"message": f"JSON操作错误: {str(e)}"}), 500
 
 if __name__ == '__main__':
     s = HTTPServer(WSGIContainer(app))

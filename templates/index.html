@@ -21,12 +21,13 @@
     <div class="alert alert-info mt-4">
         <h5>示例命令</h5>
         <pre>
-        docker run -d --restart=always -p 3002:3002 \
-        -v ~/docker_data/sun-panel/conf:/app/conf \
-        -v ~/docker_data/sun-panel/uploads:/app/uploads \
-        -v ~/docker_data/sun-panel/database:/app/database \
-        --name sun-panel \
-        hslr/sun-panel
+            docker run -itd \
+            --name software_source \
+            -p 10010:10010 \
+            -v /root/taichisource/app:/app/app \
+            -v /root/taichisource/app.json:/app/app.json \
+            --restart=always \
+            fushin/taichi_os_software_source
         </pre>
         <hr>
         <h5>注意事项</h5>
@@ -34,6 +35,7 @@
             <li>请使用类似如上的docker run命令来生成json, 镜像后面不要带脚本</li>
             <li>生成完毕检查生成的json是否与你的命令是否对应,如果不对应可以修改</li>
             <li>确认无误后, 点击确认, 自动写入相对于的app.json和run.json</li>
+            <li>注意不要使用过长的名称, 不要使用中文名称</li>
         </ol>
         <hr>
         <h5>软件源目录结构</h5>
@@ -52,6 +54,7 @@
     <input type="text" id="command" class="form-control mt-4" placeholder="输入docker run命令">
     <button id="run" class="btn btn-primary mt-2">生成</button>
     <div id="editor" class="mt-4" style="height: 300px;"></div>
+    <div id="description-editor" class="mt-4" style="height: 100px;"></div>
     <button id="confirm" class="btn btn-success mt-2" disabled>确认</button>
 </div>
 
@@ -62,24 +65,45 @@
             var table = $('<table>').addClass('table');
             var thead = $('<thead>');
             var tbody = $('<tbody>');
-            thead.append('<tr><th>已有软件</th><th>链接</th></tr>');
+            thead.append('<tr><th>已有软件</th><th>链接</th><th>描述</th><th>操作</th></tr>');  // 添加新的表头
             table.append(thead);
 
             $.each(data, function(key, value) {
                 var row = $('<tr>');
                 row.append($('<td>').text(key));
-                row.append($('<td>').html('<a href="' + value + '">' + value + '</a>'));
+                row.append($('<td>').html('<a href="' + value.url + '">' + value.url + '</a>'));  // 修改链接的获取方式
+                row.append($('<td>').text(value.description || ''));  // 添加新的描述列
+                var deleteButton = $('<button>').text('删除').addClass('btn btn-danger btn-sm');  // 创建删除按钮
+                row.append($('<td>').append(deleteButton));  // 将删除按钮添加到行中
                 tbody.append(row);
+
+                // 为删除按钮添加点击事件处理器
+                deleteButton.click(function () {
+                    $.ajax({
+                        url: '/delete/' + key,
+                        type: 'DELETE',
+                        success: function (data) {
+                            alert(data.message);
+                            refreshSoftwareList();  // 刷新软件源列表
+                        },
+                        error: function (jqXHR) {
+                            alert('删除失败: ' + jqXHR.responseJSON.message);
+                        }
+                    });
+                });
             });
 
             table.append(tbody);
             $('#software-table').append(table);
         });
     }
-
     var editor = ace.edit("editor");
     editor.setTheme("ace/theme/monokai");
     editor.session.setMode("ace/mode/json");
+
+    var descriptionEditor = ace.edit("description-editor");  // 新增的软件简介编辑器
+    descriptionEditor.setTheme("ace/theme/monokai");
+    descriptionEditor.session.setMode("ace/mode/text");
 
     $('#run').click(function() {
         var command = $('#command').val();
@@ -99,18 +123,20 @@
     $('#confirm').click(function() {
         try {
             var container_config = JSON.parse(editor.getValue());
+            var description = descriptionEditor.getValue();  // 获取软件简介
             if (!container_config.hasOwnProperty('name')) {
                 throw new Error('缺少必需的属性: name');
             }
             $.ajax({
                 url: '/confirm',
                 type: 'POST',
-                data: JSON.stringify({container_config: container_config}),
+                data: JSON.stringify({container_config: container_config, description: description}),  // 将软件简介一起发送
                 contentType: 'application/json',
                 success: function(data) {
                     alert(data.message);
                     $('#confirm').prop('disabled', true);
                     editor.setValue('');  // 清空编辑器内容
+                    descriptionEditor.setValue('');  // 清空软件简介编辑器内容
                     refreshSoftwareList();  // 刷新软件源列表
                 }
             });
