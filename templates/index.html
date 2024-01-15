@@ -101,9 +101,10 @@
     editor.setTheme("ace/theme/monokai");
     editor.session.setMode("ace/mode/json");
 
-    var descriptionEditor = ace.edit("description-editor");  // 新增的软件简介编辑器
+    var descriptionEditor = ace.edit("description-editor");
     descriptionEditor.setTheme("ace/theme/monokai");
     descriptionEditor.session.setMode("ace/mode/text");
+    descriptionEditor.setValue("作者没有添加描述...");
 
     $('#run').click(function() {
         var command = $('#command').val();
