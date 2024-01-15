@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <title>Taichi_OS_Software_Source_Private</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='ace_editor.css') }}">
+    <script src="{{ url_for('static', filename='jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='ace.js') }}"></script>
+    <script src="{{ url_for('static', filename='mode-json.js') }}"></script>
+    <script src="{{ url_for('static', filename='theme-monokai.js') }}"></script>
+    <script src="{{ url_for('static', filename='worker-json.js') }}"></script>
+</head>
+<body>
+<div class="container">
+    <h1 class="mt-4">Taichi_OS软件源JSON生成工具-私有版本</h1>
+    <div id="software-table" class="mt-4"></div>
+    <div class="alert alert-info mt-4">
+        <h5>示例命令</h5>
+        <pre>
+        docker run -d --restart=always -p 3002:3002 \
+        -v ~/docker_data/sun-panel/conf:/app/conf \
+        -v ~/docker_data/sun-panel/uploads:/app/uploads \
+        -v ~/docker_data/sun-panel/database:/app/database \
+        --name sun-panel \
+        hslr/sun-panel
+        </pre>
+        <hr>
+        <h5>注意事项</h5>
+        <ol>
+            <li>请使用类似如上的docker run命令来生成json, 镜像后面不要带脚本</li>
+            <li>生成完毕检查生成的json是否与你的命令是否对应,如果不对应可以修改</li>
+            <li>确认无误后, 点击确认, 自动写入相对于的app.json和run.json</li>
+        </ol>
+        <hr>
+        <h5>文件路径</h5>
+        <ul>
+            <li>app.json # 软件源目录<br>
+                路径: /app.json</li>
+            <li>run.json # 软件运行需要的配置文件<br>
+                路径: /app/{name}/run.json</li>
+        </ul>
+    </div>
+    <input type="text" id="command" class="form-control mt-4" placeholder="输入docker run命令">
+    <button id="run" class="btn btn-primary mt-2">生成</button>
+    <div id="editor" class="mt-4" style="height: 300px;"></div>
+    <button id="confirm" class="btn btn-success mt-2" disabled>确认</button>
+</div>
+
+<script>
+    function refreshSoftwareList() {
+        $('#software-table').empty();
+        $.getJSON('app.json', function(data) {
+            var table = $('<table>').addClass('table');
+            var thead = $('<thead>');
+            var tbody = $('<tbody>');
+            thead.append('<tr><th>已有软件</th><th>链接</th></tr>');
+            table.append(thead);
+
+            $.each(data, function(key, value) {
+                var row = $('<tr>');
+                row.append($('<td>').text(key));
+                row.append($('<td>').html('<a href="' + value + '">' + value + '</a>'));
+                tbody.append(row);
+            });
+
+            table.append(tbody);
+            $('#software-table').append(table);
+        });
+    }
+
+    var editor = ace.edit("editor");
+    editor.setTheme("ace/theme/monokai");
+    editor.session.setMode("ace/mode/json");
+
+    $('#run').click(function() {
+        var command = $('#command').val();
+        $.ajax({
+            url: '/source',
+            type: 'POST',
+            data: JSON.stringify({command: command}),
+            contentType: 'application/json',
+            success: function(data) {
+                editor.setValue(JSON.stringify(data, null, 4));
+                $('#confirm').prop('disabled', false);
+            }
+        });
+        $('#command').val('');
+    });
+
+    $('#confirm').click(function() {
+        try {
+            var container_config = JSON.parse(editor.getValue());
+            if (!container_config.hasOwnProperty('name')) {
+                throw new Error('缺少必需的属性: name');
+            }
+            $.ajax({
+                url: '/confirm',
+                type: 'POST',
+                data: JSON.stringify({container_config: container_config}),
+                contentType: 'application/json',
+                success: function(data) {
+                    alert(data.message);
+                    $('#confirm').prop('disabled', true);
+                    editor.setValue('');  // 清空编辑器内容
+                    refreshSoftwareList();  // 刷新软件源列表
+                }
+            });
+        } catch (e) {
+            alert('JSON 格式错误: ' + e.message);
+        }
+    });
+
+    refreshSoftwareList();  // 页面加载时刷新软件源列表
+</script>
+</body>
+</html>
