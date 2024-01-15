@@ -51,7 +51,7 @@ def confirm():
     except TypeError:
         return jsonify('json格式错误')
 
-    if os.path.exists('app.json'):
+    if os.path.exists('app.json') and os.path.getsize('app.json') > 0:
         with open('app.json', 'r') as f:
             app_data = json.load(f)
     else:
