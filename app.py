@@ -20,9 +20,7 @@ app = Flask(__name__)
 @app.route('/source', methods=['POST'])
 def docker_run():
     command = request.json.get('command')
-    # 移除命令中的引号
-    command = command.replace('"', '')
-    args = shlex.split(command, posix=False)
+    args = shlex.split(command)
 
     try:
         name = None
@@ -35,15 +33,29 @@ def docker_run():
                 break
 
         if name is None:
-            return jsonify('错误: 命令中没有找到 --name 参数'), 200
+            image = None
+            for arg in reversed(args):
+                if '/' in arg:
+                    image = arg
+                    break
+
+            if image is None:
+                return jsonify('错误: 命令中没有找到镜像名'), 200
+
+            name = image.split('/')[-1].split(':')[0]
 
         ports = [args[i + 1] for i, x in enumerate(args) if x == '-p']
         volumes = [args[i + 1] for i, x in enumerate(args) if x == '-v']
         envs = [args[i + 1] for i, x in enumerate(args) if x == '-e']
+
+        run_cmds = []
+        for i, x in enumerate(args):
+            if x == '-run_cmd':
+                run_cmds.append(args[i + 1])
+                break
     except (ValueError, IndexError) as e:
         return jsonify(f'解析错误,请检查命令{e}'), 200
 
-    # 获取镜像名
     image = None
     for arg in reversed(args):
         if '/' in arg:
@@ -67,6 +79,8 @@ def docker_run():
 
     if volumes_dict:
         container_config['volumes'] = volumes_dict
+        if run_cmds:
+            container_config['run_cmd'] = {list(volumes_dict.keys())[0]: run_cmds}
     if envs_dict:
         container_config['env'] = envs_dict
 
