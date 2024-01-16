@@ -29,6 +29,48 @@
             --restart=always \
             fushin/taichi_os_software_source
         </pre>
+        <h5>高级配置</h5>
+        <pre>
+            1. [实验性功能]新增参数特性-run_cmd "{shell}" 用于初始化存储卷之后
+            可以使用对应的命令下载或者配置容器的命令结构,默认绑定最初的存储卷，需要手动指定位置
+            对于依赖某些网络配置的容器会很好用, 可以使用各种shell命令来获取配置
+            前提是Taichi OS宿主机内安装了这些shell工具，否则会报错
+            示例:
+            docker run -itd \
+            --name software_source \
+            -p 10010:10010 \
+            -v /root/taichisource/app:/app/app \
+            -v /root/taichisource/app.json:/app/app.json \
+            -run_cmd "{shell}" \
+            --restart=always \
+            fushin/taichi_os_software_source
+            输出:
+            {
+                "image": "fushin/taichi_os_software_source",
+                "name": "software_source",
+                "ports": {
+                    "10010": 10010
+                },
+                "restart_policy": {
+                    "Name": "always"
+                },
+                "run_cmd": {
+                    "software_source_app_volume": [
+                        "{shell}"
+                    ]
+                },
+                "volumes": {
+                    "software_source_app.json_volume": {
+                        "bind": "/app/app.json",
+                        "mode": "rw"
+                    },
+                    "software_source_app_volume": {
+                        "bind": "/app/app",
+                        "mode": "rw"
+                    }
+                }
+            }
+        </pre>
         <hr>
         <h5>注意事项</h5>
         <ol>
