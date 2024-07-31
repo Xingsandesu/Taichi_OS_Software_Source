@@ -2,7 +2,7 @@
 
 ## 官方源
 
-app.kookoo.top
+[app.kookoo.top](https://taichi.evautocar.com/)
 
 ## 手动部署
 
